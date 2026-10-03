@@ -50,6 +50,9 @@ fn calculate(a_view: DMatrixView<f64>, b_view: DMatrixView<f64>) -> (usize, DMat
     let c22 = &m1 - &m2 + &m3 + &m6;
 
     let split_at = n / 2;
+    // the total number of block operations for generating m and c matrixes is 18 (additions and
+    // subtractions) and each of these matrixes has (n/2)^2 elements
+    let matrix_ops = 18 * split_at * split_at;
     let mut res = DMatrix::zeros(n, n);
 
     res.view_mut((0,0), (split_at,split_at)).copy_from(&c11);
@@ -57,7 +60,7 @@ fn calculate(a_view: DMatrixView<f64>, b_view: DMatrixView<f64>) -> (usize, DMat
     res.view_mut((split_at,0), (split_at,split_at)).copy_from(&c21);
     res.view_mut((split_at,split_at), (split_at,split_at)).copy_from(&c22);
 
-    let total_ops = ops1 + ops2 + ops3 + ops4 + ops5 + ops6 + ops7;
+    let total_ops = ops1 + ops2 + ops3 + ops4 + ops5 + ops6 + ops7 + matrix_ops;
 
     (total_ops, res)
 }
