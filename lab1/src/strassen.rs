@@ -15,6 +15,10 @@ fn split_view<'a>(view: &'a DMatrixView<f64>) -> (DMatrixView<'a, f64>, DMatrixV
 fn calculate(a_view: DMatrixView<f64>, b_view: DMatrixView<f64>) -> (usize, DMatrix<f64>) {
     let (n, _) = a_view.shape();
 
+    if n == 1 {
+        return (1, a_view * b_view);
+    }
+
     if n == 2 {
         let p1 = (a_view[(0,0)] + a_view[(1,1)]) * (b_view[(0, 0)] + b_view[(1, 1)]);
         let p2 = (a_view[(1,0)] + a_view[(1,1)]) * b_view[(0,0)];
