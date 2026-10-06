@@ -59,7 +59,7 @@ fn calculate(a_view: DMatrixView<f64>, b_view: DMatrixView<f64>) -> (usize, DMat
     (total_ops, res)
 }
 
-pub fn strassen(a: DMatrix<f64>, b: DMatrix<f64>) -> (usize, DMatrix<f64>) {
+pub fn strassen(a: &DMatrix<f64>, b: &DMatrix<f64>) -> (usize, DMatrix<f64>) {
     let (n, _) = a.shape();
 
     let a_view = a.view((0, 0), (n, n));
@@ -75,7 +75,7 @@ mod tests {
     
     #[test]
     fn mul1x1() {
-        let (_, res) = strassen(DMatrix::from_row_slice(1, 1, &[2.]), DMatrix::from_row_slice(1, 1, &[3.]));
+        let (_, res) = strassen(&DMatrix::from_row_slice(1, 1, &[2.]), &DMatrix::from_row_slice(1, 1, &[3.]));
         assert_eq!(
             DMatrix::from_row_slice(1, 1, &[6.]),
             res
@@ -86,7 +86,7 @@ mod tests {
     fn mul2x2() {
         let a = DMatrix::from_row_slice(2, 2, &[1., 2., 3., 4.,]);
         let b = DMatrix::from_row_slice(2, 2, &[5., 6., 7., 8.,]);
-        let (_, res) = strassen(a, b);
+        let (_, res) = strassen(&a, &b);
 
         assert_eq!(
             DMatrix::from_row_slice(2, 2, &[
