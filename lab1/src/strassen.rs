@@ -1,16 +1,6 @@
 use nalgebra::{DMatrix, DMatrixView};
 
-fn split_view<'a>(view: &'a DMatrixView<f64>) -> (DMatrixView<'a, f64>, DMatrixView<'a, f64>, DMatrixView<'a, f64>, DMatrixView<'a, f64>) {
-    let (n, _) = view.shape();
-    let split_at = n / 2;
-
-    let a11 = view.view((0,0), (split_at,split_at));
-    let a12 = view.view((0,split_at), (split_at, split_at));
-    let a21 = view.view((split_at,0), (split_at,split_at));
-    let a22 = view.view((split_at, split_at), (split_at, split_at));
-
-    (a11, a12, a21, a22)
-}
+use crate::util::split_view;
 
 fn calculate(a_view: DMatrixView<f64>, b_view: DMatrixView<f64>) -> (usize, DMatrix<f64>) {
     let (n, _) = a_view.shape();
