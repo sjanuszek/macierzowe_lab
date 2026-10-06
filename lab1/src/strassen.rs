@@ -78,3 +78,32 @@ pub fn strassen(a: DMatrix<f64>, b: DMatrix<f64>) -> (usize, DMatrix<f64>) {
     let (ops, result) = calculate(a_view, b_view);
     (ops, result)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn mul1x1() {
+        let (_, res) = strassen(DMatrix::from_row_slice(1, 1, &[2.]), DMatrix::from_row_slice(1, 1, &[3.]));
+        assert_eq!(
+            DMatrix::from_row_slice(1, 1, &[6.]),
+            res
+        );
+    }
+    
+    #[test]
+    fn mul2x2() {
+        let a = DMatrix::from_row_slice(2, 2, &[1., 2., 3., 4.,]);
+        let b = DMatrix::from_row_slice(2, 2, &[5., 6., 7., 8.,]);
+        let (_, res) = strassen(a, b);
+
+        assert_eq!(
+            DMatrix::from_row_slice(2, 2, &[
+                19., 22.,
+                43., 50.,
+            ]),
+            res
+        );
+    }
+}
