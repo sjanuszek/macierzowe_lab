@@ -2,21 +2,29 @@ use nalgebra::{DMatrix, DMatrixView};
 
 use crate::util::split_view;
 
-fn calculate(a_view: DMatrixView<f64>, b_view: DMatrixView<f64>) -> (usize, DMatrix<f64>) {
-    let (n, _) = a_view.shape();
+fn calculate(a: DMatrixView<f64>, b: DMatrixView<f64>) -> (usize, DMatrix<f64>) {
+    let (n, _) = a.shape();
 
     if n == 1 {
-        return (1, a_view * b_view);
+        return (1, a * b);
     }
 
     if n == 2 {
-        let p1 = (a_view[(0,0)] + a_view[(1,1)]) * (b_view[(0, 0)] + b_view[(1, 1)]);
-        let p2 = (a_view[(1,0)] + a_view[(1,1)]) * b_view[(0,0)];
-        let p3 = a_view[(0,0)] * (b_view[(0,1)] - b_view[(1,1)]);
-        let p4 = a_view[(1,1)] * (b_view[(1,0)] - b_view[(0,0)]);
-        let p5 = (a_view[(0,0)] + a_view[(0,1)]) * b_view[(1,1)];
-        let p6 = (a_view[(1,0)] - a_view[(0,0)]) * (b_view[(0,0)] + b_view[(0,1)]);
-        let p7 = (a_view[(0,1)] - a_view[(1,1)]) * (b_view[(1,0)] + b_view[(1,1)]);
+
+        let (a11, a12,
+             a21, a22) = (a[(0,0)], a[(0,1)],
+                          a[(1,0)], a[(1,1)]);
+        let (b11, b12,
+             b21, b22) = (b[(0,0)], b[(0,1)],
+                          b[(1,0)], b[(1,1)]);
+
+        let p1 = (a11 + a22) * (b22 + b22);
+        let p2 = (a21 + a22) * b11;
+        let p3 = a11 * (b12 - b22);
+        let p4 = a22 * (b21 - b11);
+        let p5 = (a11 + a12) * b22;
+        let p6 = (a21 - a11) * (b11 + b12);
+        let p7 = (a12 - a22) * (b21 + b22);
 
         let mut res = DMatrix::zeros(2, 2);
         res[(0,0)] = p1 + p4 - p5 + p7;
@@ -31,15 +39,15 @@ fn calculate(a_view: DMatrixView<f64>, b_view: DMatrixView<f64>) -> (usize, DMat
     if n % 2 != 0 {
         let m = n - 1;
 
-        let a11 = a_view.view((0, 0), (m, m));
-        let a12 = a_view.view((0, m), (m, 1));
-        let a21 = a_view.view((m, 0), (1, m));
-        let a22 = a_view[(m, m)];
+        let a11 = a.view((0, 0), (m, m));
+        let a12 = a.view((0, m), (m, 1));
+        let a21 = a.view((m, 0), (1, m));
+        let a22 = a[(m, m)];
 
-        let b11 = b_view.view((0, 0), (m, m));
-        let b12 = b_view.view((0, m), (m, 1));
-        let b21 = b_view.view((m, 0), (1, m));
-        let b22 = b_view[(m, m)];
+        let b11 = b.view((0, 0), (m, m));
+        let b12 = b.view((0, m), (m, 1));
+        let b21 = b.view((m, 0), (1, m));
+        let b22 = b[(m, m)];
 
         let (ops_core, core) = calculate(a11, b11);
 
@@ -63,16 +71,18 @@ fn calculate(a_view: DMatrixView<f64>, b_view: DMatrixView<f64>) -> (usize, DMat
         return (ops_core + peeling_ops, res);
     }
     
-    let (a11, a12, a21, a22) = split_view(&a_view);
-    let (b11, b12, b21, b22) = split_view(&b_view);
+    let (a11, a12, 
+         a21, a22) = split_view(&a);
+    let (b11, b12, 
+         b21, b22) = split_view(&b);
 
-    let (ops1, m1) = calculate((&a11 + &a22).as_view(), (&b11 + &b22).as_view());
-    let (ops2, m2) = calculate((&a21 + &a22).as_view(), b11.as_view());
-    let (ops3, m3) = calculate(a11.as_view(), (&b12 - &b22).as_view());
-    let (ops4, m4) = calculate(a22.as_view(), (&b21 - &b11).as_view());
-    let (ops5, m5) = calculate((&a11 + &a12).as_view(), b22.as_view());
-    let (ops6, m6) = calculate((&a21 - &a11).as_view(), (&b11 + &b12).as_view());
-    let (ops7, m7) = calculate((&a12 - &a22).as_view(), (&b21 + &b22).as_view());
+    let (ops1, m1) = calculate((a11 + a22).as_view(), (b11 + b22).as_view());
+    let (ops2, m2) = calculate((a21 + a22).as_view(), b11.as_view());
+    let (ops3, m3) = calculate(a11.as_view(), (b12 - b22).as_view());
+    let (ops4, m4) = calculate(a22.as_view(), (b21 - b11).as_view());
+    let (ops5, m5) = calculate((a11 + a12).as_view(), b22.as_view());
+    let (ops6, m6) = calculate((a21 - a11).as_view(), (b11 + b12).as_view());
+    let (ops7, m7) = calculate((a12 - a22).as_view(), (b21 + b22).as_view());
 
     let c11 = &m1 + &m4 - &m5 + &m7;
     let c12 = &m3 + &m5;
@@ -98,10 +108,10 @@ fn calculate(a_view: DMatrixView<f64>, b_view: DMatrixView<f64>) -> (usize, DMat
 pub fn strassen(a: &DMatrix<f64>, b: &DMatrix<f64>) -> (usize, DMatrix<f64>) {
     let (n, _) = a.shape();
 
-    let a_view = a.view((0, 0), (n, n));
-    let b_view = b.view((0, 0), (n, n));
+    let a = a.view((0, 0), (n, n));
+    let b = b.view((0, 0), (n, n));
 
-    let (ops, result) = calculate(a_view, b_view);
+    let (ops, result) = calculate(a, b);
     (ops, result)
 }
 
