@@ -1,6 +1,6 @@
 use nalgebra::{DMatrix, DMatrixView};
 
-use crate::util::split_view;
+use crate::util::{dynamic_peeling, split_view};
 
 fn calculate(a: DMatrixView<f64>, b: DMatrixView<f64>) -> (usize, DMatrix<f64>) {
     let (n, _) = a.shape();
@@ -18,7 +18,7 @@ fn calculate(a: DMatrixView<f64>, b: DMatrixView<f64>) -> (usize, DMatrix<f64>) 
              b21, b22) = (b[(0,0)], b[(0,1)],
                           b[(1,0)], b[(1,1)]);
 
-        let p1 = (a11 + a22) * (b22 + b22);
+        let p1 = (a11 + a22) * (b11 + b22);
         let p2 = (a21 + a22) * b11;
         let p3 = a11 * (b12 - b22);
         let p4 = a22 * (b21 - b11);
@@ -36,40 +36,7 @@ fn calculate(a: DMatrixView<f64>, b: DMatrixView<f64>) -> (usize, DMatrix<f64>) 
     }
 
     // dynamic peeling
-    if n % 2 != 0 {
-        let m = n - 1;
-
-        let a11 = a.view((0, 0), (m, m));
-        let a12 = a.view((0, m), (m, 1));
-        let a21 = a.view((m, 0), (1, m));
-        let a22 = a[(m, m)];
-
-        let b11 = b.view((0, 0), (m, m));
-        let b12 = b.view((0, m), (m, 1));
-        let b21 = b.view((m, 0), (1, m));
-        let b22 = b[(m, m)];
-
-        let (ops_core, core) = calculate(a11, b11);
-
-        // (+) m^2 additions, (*) (m x 1 by 1 x m) m^2 multiplications = 2m^2
-        let c11 = core + &a12 * &b21;
-        // (*) (m x m by m x 1) m^2 multiplications + m^2 - m additions, (+) m additions, (*) (m x 1 * scalar) m multiplications =  2m^2 + m
-        let c12 = &a11 * &b12 + &a12 * b22;
-        // (*) (1 x m by m x m) m^2 multiplications + m^2 - m additions, (+) m additions, (*) (scalar * 1 x m) m multiplications = 2m^2 + m
-        let c21 = &a21 * &b11 + a22 * b21;
-        // (*) (1 x m by m x m) m^2 multiplications + m^2 - m additions, (+) 1 addition, (*) (scalar * scalar) 1 multiplications = 2m^2 - m + 2
-        let c22 = (&a21 * &b11)[(0,0)] + &a22 * b22;
-
-        let mut res = DMatrix::zeros(n, n);
-        res.view_mut((0, 0), (m, m)).copy_from(&c11);
-        res.view_mut((0, m), (m, 1)).copy_from(&c12);
-        res.view_mut((m, 0), (1, m)).copy_from(&c21);
-        res[(m, m)] = c22;
-
-        let peeling_ops = 8 * m * m + m + 2;
-
-        return (ops_core + peeling_ops, res);
-    }
+    if n % 2 != 0 { return dynamic_peeling(&a, &b, calculate); }
     
     let (a11, a12, 
          a21, a22) = split_view(&a);
