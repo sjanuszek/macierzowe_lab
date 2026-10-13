@@ -26,6 +26,42 @@ fn calculate(a_view: DMatrixView<f64>, b_view: DMatrixView<f64>) -> (usize, DMat
 
         return (25, res);
     }
+
+    // dynamic peeling
+    if n % 2 != 0 {
+        let m = n - 1;
+
+        let a11 = a_view.view((0, 0), (m, m));
+        let a12 = a_view.view((0, m), (m, 1));
+        let a21 = a_view.view((m, 0), (1, m));
+        let a22 = a_view[(m, m)];
+
+        let b11 = b_view.view((0, 0), (m, m));
+        let b12 = b_view.view((0, m), (m, 1));
+        let b21 = b_view.view((m, 0), (1, m));
+        let b22 = b_view[(m, m)];
+
+        let (ops_core, core) = calculate(a11, b11);
+
+        // (+) m^2 additions, (*) (m x 1 by 1 x m) m^2 multiplications = 2m^2
+        let c11 = core + &a12 * &b21;
+        // (*) (m x m by m x 1) m^2 multiplications + m^2 - m additions, (+) m additions, (*) (m x 1 * scalar) m multiplications =  2m^2 + m
+        let c12 = &a11 * &b12 + &a12 * b22;
+        // (*) (1 x m by m x m) m^2 multiplications + m^2 - m additions, (+) m additions, (*) (scalar * 1 x m) m multiplications = 2m^2 + m
+        let c21 = &a21 * &b11 + a22 * b21;
+        // (*) (1 x m by m x m) m^2 multiplications + m^2 - m additions, (+) 1 addition, (*) (scalar * scalar) 1 multiplications = 2m^2 - m + 2
+        let c22 = (&a21 * &b11)[(0,0)] + &a22 * b22;
+
+        let mut res = DMatrix::zeros(n, n);
+        res.view_mut((0, 0), (m, m)).copy_from(&c11);
+        res.view_mut((0, m), (m, 1)).copy_from(&c12);
+        res.view_mut((m, 0), (1, m)).copy_from(&c21);
+        res[(m, m)] = c22;
+
+        let peeling_ops = 8 * m * m + m + 2;
+
+        return (ops_core + peeling_ops, res);
+    }
     
     let (a11, a12, a21, a22) = split_view(&a_view);
     let (b11, b12, b21, b22) = split_view(&b_view);
