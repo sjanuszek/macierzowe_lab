@@ -1,6 +1,6 @@
 use nalgebra::{DMatrix, DMatrixView};
 
-use crate::util::split_view_3x3;
+use crate::util::{pad_to_power, split_view_3x3};
 
 fn calculate(a: DMatrixView<f64>, b: DMatrixView<f64>) -> (usize, DMatrix<f64>) {
     let (n, _) = a.shape();
@@ -134,9 +134,12 @@ fn calculate(a: DMatrixView<f64>, b: DMatrixView<f64>) -> (usize, DMatrix<f64>) 
 pub fn laderman(a: &DMatrix<f64>, b: &DMatrix<f64>) -> (usize, DMatrix<f64>) {
     let (n, _) = a.shape();
 
-    let a = a.view((0, 0), (n, n));
-    let b = b.view((0, 0), (n, n));
+    let a = pad_to_power(a, 3);
+    let b = pad_to_power(b, 3);
 
-    let (ops, result) = calculate(a, b);
+    let (ops, result) = calculate(a.as_view(), b.as_view());
+
+    let result = result.view((0,0), (n,n)).into_owned();
+
     (ops, result)
 }

@@ -43,6 +43,20 @@ pub fn dynamic_peeling<'a>(a: &'a DMatrixView<f64>, b: &'a DMatrixView<f64>, cal
     return (ops_core + peeling_ops, res);
 }
 
+pub fn pad_to_power(matrix: &DMatrix<f64>, power: usize) -> DMatrix<f64> {
+    let (n, _) = matrix.shape();
+
+    let mut size = 1;
+    while n > size {
+        size *= power
+    }
+
+    let mut padded = DMatrix::zeros(size, size);
+    padded.view_mut((0,0), (n,n)).copy_from(&matrix);
+
+    padded
+}
+
 pub fn split_view<'a>(view: &'a DMatrixView<f64>) -> (DMatrixView<'a, f64>, DMatrixView<'a, f64>, DMatrixView<'a, f64>, DMatrixView<'a, f64>) {
     let (n, _) = view.shape();
     let split_at = n / 2;
