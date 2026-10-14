@@ -30,7 +30,7 @@ pub fn dynamic_peeling<'a>(a: &'a DMatrixView<f64>, b: &'a DMatrixView<f64>, cal
     // (*) (1 x m by m x m) m^2 multiplications + m^2 - m additions, (+) m additions, (*) (scalar * 1 x m) m multiplications = 2m^2 + m
     let c21 = &a21 * &b11 + a22 * b21;
     // (*) (1 x m by m x m) m^2 multiplications + m^2 - m additions, (+) 1 addition, (*) (scalar * scalar) 1 multiplications = 2m^2 - m + 2
-    let c22 = (&a21 * &b11)[(0,0)] + &a22 * b22;
+    let c22 = (&a21 * &b12)[(0,0)] + &a22 * b22;
 
     let mut res = DMatrix::zeros(n, n);
     res.view_mut((0, 0), (m, m)).copy_from(&c11);
