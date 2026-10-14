@@ -1,6 +1,14 @@
 use nalgebra::{DMatrix, DMatrixView};
 
-use crate::util::{pad_to_power, split_view_3x3};
+use crate::util::split_view_3x3;
+
+fn pad_to(m: DMatrixView<f64>, size: usize) -> DMatrix<f64> {
+    let n = m.nrows();
+
+    let mut padded = DMatrix::zeros(size, size);
+    padded.view_mut((0, 0), (n, n)).copy_from(&m);
+    padded
+}
 
 fn calculate(a: DMatrixView<f64>, b: DMatrixView<f64>) -> (usize, DMatrix<f64>) {
     let (n, _) = a.shape();
@@ -62,6 +70,14 @@ fn calculate(a: DMatrixView<f64>, b: DMatrixView<f64>) -> (usize, DMatrix<f64>) 
         // 42
 
         return (121, res);
+    }
+
+    if n % 3 != 0 {
+        let padded = n.div_ceil(3) * 3;
+        let a_pad = pad_to(a, padded);
+        let b_pad = pad_to(b, padded);
+        let (ops, c) = calculate(a_pad.as_view(), b_pad.as_view());
+        return (ops, c.view((0, 0), (n, n)).into_owned());
     }
     
     let (a11, a12, a13,
@@ -132,14 +148,5 @@ fn calculate(a: DMatrixView<f64>, b: DMatrixView<f64>) -> (usize, DMatrix<f64>) 
 }
 
 pub fn laderman(a: &DMatrix<f64>, b: &DMatrix<f64>) -> (usize, DMatrix<f64>) {
-    let (n, _) = a.shape();
-
-    let a = pad_to_power(a, 3);
-    let b = pad_to_power(b, 3);
-
-    let (ops, result) = calculate(a.as_view(), b.as_view());
-
-    let result = result.view((0,0), (n,n)).into_owned();
-
-    (ops, result)
+    calculate(a.as_view(), b.as_view())
 }
