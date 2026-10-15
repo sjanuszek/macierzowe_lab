@@ -1,4 +1,4 @@
-use nalgebra::{DMatrix, DMatrixView};
+use nalgebra::{DMatrix, DMatrixView, dmatrix};
 
 use crate::util::{dynamic_peeling, split_view};
 
@@ -6,33 +6,7 @@ fn calculate(a: DMatrixView<f64>, b: DMatrixView<f64>) -> (usize, DMatrix<f64>) 
     let (n, _) = a.shape();
 
     if n == 1 {
-        return (1, a * b);
-    }
-
-    if n == 2 {
-
-        let (a11, a12,
-             a21, a22) = (a[(0,0)], a[(0,1)],
-                          a[(1,0)], a[(1,1)]);
-        let (b11, b12,
-             b21, b22) = (b[(0,0)], b[(0,1)],
-                          b[(1,0)], b[(1,1)]);
-
-        let p1 = (a11 + a22) * (b11 + b22);
-        let p2 = (a21 + a22) * b11;
-        let p3 = a11 * (b12 - b22);
-        let p4 = a22 * (b21 - b11);
-        let p5 = (a11 + a12) * b22;
-        let p6 = (a21 - a11) * (b11 + b12);
-        let p7 = (a12 - a22) * (b21 + b22);
-
-        let mut res = DMatrix::zeros(2, 2);
-        res[(0,0)] = p1 + p4 - p5 + p7;
-        res[(0,1)] = p3 + p5;
-        res[(1,0)] = p2 + p4;
-        res[(1,1)] = p1 - p2 + p3 + p6;
-
-        return (25, res);
+        return (1, dmatrix![a[(0, 0)] * b[(0, 0)]]);
     }
 
     // dynamic peeling
@@ -73,13 +47,7 @@ fn calculate(a: DMatrixView<f64>, b: DMatrixView<f64>) -> (usize, DMatrix<f64>) 
 }
 
 pub fn strassen(a: &DMatrix<f64>, b: &DMatrix<f64>) -> (usize, DMatrix<f64>) {
-    let (n, _) = a.shape();
-
-    let a = a.view((0, 0), (n, n));
-    let b = b.view((0, 0), (n, n));
-
-    let (ops, result) = calculate(a, b);
-    (ops, result)
+    calculate(a.as_view(), b.as_view())
 }
 
 #[cfg(test)]
@@ -88,24 +56,27 @@ mod tests {
     
     #[test]
     fn mul1x1() {
-        let (_, res) = strassen(&DMatrix::from_row_slice(1, 1, &[2.]), &DMatrix::from_row_slice(1, 1, &[3.]));
-        assert_eq!(
-            DMatrix::from_row_slice(1, 1, &[6.]),
-            res
-        );
+        let (_, res) = strassen(&dmatrix![2.], &dmatrix![3.]);
+        assert_eq!(dmatrix![6.], res);
     }
     
     #[test]
     fn mul2x2() {
-        let a = DMatrix::from_row_slice(2, 2, &[1., 2., 3., 4.,]);
-        let b = DMatrix::from_row_slice(2, 2, &[5., 6., 7., 8.,]);
+        let a = dmatrix![
+            1., 2.;
+            3., 4.;
+        ];
+        let b = dmatrix![
+            5., 6.;
+            7., 8.;
+        ];
         let (_, res) = strassen(&a, &b);
 
         assert_eq!(
-            DMatrix::from_row_slice(2, 2, &[
-                19., 22.,
-                43., 50.,
-            ]),
+            dmatrix![
+                19., 22.;
+                43., 50.;
+            ],
             res
         );
     }

@@ -36,7 +36,7 @@ fn calculate(a: DMatrixView<f64>, b: DMatrixView<f64>) -> (usize, DMatrix<f64>) 
 }
 
 pub fn mul(a: &DMatrix<f64>, b: &DMatrix<f64>) -> (usize, DMatrix<f64>) {
-    calculate(a.view_range(.., ..), b.view_range(.., ..))
+    calculate(a.as_view(), b.as_view())
 }
 
 #[cfg(test)]

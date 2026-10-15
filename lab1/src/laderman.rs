@@ -1,4 +1,4 @@
-use nalgebra::{DMatrix, DMatrixView};
+use nalgebra::{DMatrix, DMatrixView, dmatrix};
 
 use crate::util::split_view_3x3;
 
@@ -14,62 +14,7 @@ fn calculate(a: DMatrixView<f64>, b: DMatrixView<f64>) -> (usize, DMatrix<f64>) 
     let (n, _) = a.shape();
 
     if n == 1 {
-        return (1, a * b);
-    }
-
-    if n == 3 {
-        let (a11, a12, a13,
-             a21, a22, a23,
-             a31, a32, a33) = (a[(0,0)], a[(0,1)], a[(0,2)],
-                               a[(1,0)], a[(1,1)], a[(1,2)], 
-                               a[(2,0)], a[(2,1)], a[(2,2)]);
-
-        let (b11, b12, b13,
-             b21, b22, b23,
-             b31, b32, b33) = (b[(0,0)], b[(0,1)], b[(0,2)],
-                               b[(1,0)], b[(1,1)], b[(1,2)], 
-                               b[(2,0)], b[(2,1)], b[(2,2)]);
-
-        let m1 = (a11 + a12 + a13 - a21 - a22 - a32 - a33) * b22;
-        let m2 = (a11 - a21) * (-b12 + b22);
-        let m3 = a22 * (-b11 + b12 + b21 - b22 - b23 - b31 + b33);
-        let m4 = (-a11 + a21 + a22) * (b11 - b12 + b22);
-        let m5 = (a21 + a22) * (-b11 + b12);
-        let m6 = a11 * b11;
-        let m7 = (-a11 + a31 + a32) * (b11 - b13 + b23);
-        let m8 = (-a11 + a31) * (b13 - b23);
-        let m9 = (a31 + a32) * (-b11 + b13);
-        let m10 = (a11 + a12 + a13 - a22 - a23 - a31 - a32) * b23;
-        let m11 = a32 * (-b11 + b13 + b21 - b22 - b23 - b31 + b32);
-        let m12 = (-a13 + a32 + a33) * (b22 + b31 - b32);
-        let m13 = (a13 - a33) * (b22 - b32);
-        let m14 = a13 * b31;
-        let m15 = (a32 + a33) * (-b31 + b32);
-        let m16 = (-a13 + a22 + a23) * (b23 + b31 - b33);
-        let m17 = (a13 - a23) * (b23 - b33);
-        let m18 = (a22 + a23) * (-b31 + b33);
-        let m19 = a12 * b21;
-        let m20 = a23 * b32;
-        let m21 = a21 * b13;
-        let m22 = a31 * b12;
-        let m23 = a33 * b33;
-        // 79
-
-        let mut res = DMatrix::zeros(3, 3);
-        res[(0,0)] = m6 + m14 + m19;
-        res[(0,1)] = m1 + m4 + m5 + m6 + m12 + m14 + m15;
-        res[(0,2)] = m6 + m7 + m9 + m10 + m14 + m16 + m18;
-
-        res[(1,0)] = m2 + m3 + m4 + m6 + m14 + m16 + m17;
-        res[(1,1)] = m2 + m4 + m5 + m6 + m20;
-        res[(1,2)] = m14 + m16 + m17 + m18 + m21;
-
-        res[(2,0)] = m6 + m7 + m8 + m11 + m12 + m13 + m14;
-        res[(2,1)] = m12 + m13 + m14 + m15 + m22;
-        res[(2,2)] = m6 + m7 + m8 + m9 + m23;
-        // 42
-
-        return (121, res);
+        return (1, dmatrix![a[(0, 0)] * b[(0, 0)]]);
     }
 
     if n % 3 != 0 {
