@@ -1,14 +1,6 @@
 use nalgebra::{DMatrix, DMatrixView, dmatrix};
 
-use crate::util::split_view_3x3;
-
-fn pad_to(m: DMatrixView<f64>, size: usize) -> DMatrix<f64> {
-    let n = m.nrows();
-
-    let mut padded = DMatrix::zeros(size, size);
-    padded.view_mut((0, 0), (n, n)).copy_from(&m);
-    padded
-}
+use crate::util::{dynamic_peeling, split_view_3x3};
 
 fn calculate(a: DMatrixView<f64>, b: DMatrixView<f64>) -> (usize, DMatrix<f64>) {
     let (n, _) = a.shape();
@@ -17,13 +9,7 @@ fn calculate(a: DMatrixView<f64>, b: DMatrixView<f64>) -> (usize, DMatrix<f64>) 
         return (1, dmatrix![a[(0, 0)] * b[(0, 0)]]);
     }
 
-    if n % 3 != 0 {
-        let padded = n.div_ceil(3) * 3;
-        let a_pad = pad_to(a, padded);
-        let b_pad = pad_to(b, padded);
-        let (ops, c) = calculate(a_pad.as_view(), b_pad.as_view());
-        return (ops, c.view((0, 0), (n, n)).into_owned());
-    }
+    if n % 3 != 0 { return dynamic_peeling(&a, &b, calculate); }
     
     let (a11, a12, a13,
          a21, a22, a23,
