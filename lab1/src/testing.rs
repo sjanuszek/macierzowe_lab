@@ -18,16 +18,15 @@ pub fn run_tests(sizes: &[usize]) {
     for size in sizes {
         let (a, b) = (generate_random_matrix(*size), generate_random_matrix(*size));
 
-        // temp
-        //let now = Instant::now();
-        //let (bin_ops, _) = binet::mul(&a, &b);
-        //let bin_time = now.elapsed().as_secs_f64();
-        //wtr.serialize(TestResult {
-        //    matrix_size: *size,
-        //    algorithm: "Binet".to_string(),
-        //    number_of_operations: bin_ops,
-        //    time: bin_time,
-        //}).expect("FAILED TO WRITE TO CSV");
+        let now = Instant::now();
+        let (bin_ops, _) = binet::binet(&a, &b);
+        let bin_time = now.elapsed().as_secs_f64();
+        wtr.serialize(TestResult {
+            matrix_size: *size,
+            algorithm: "Binet".to_string(),
+            number_of_operations: bin_ops,
+            time: bin_time,
+        }).expect("FAILED TO WRITE TO CSV");
 
         let now = Instant::now();
         let (str_ops, _) = strassen(&a, &b);
@@ -51,12 +50,17 @@ pub fn run_tests(sizes: &[usize]) {
 
         println!("Matrix size: {}", size);
         println!("----------------------------");
-        println!("Strassen (dynamic peeling) number of operations: {}", str_ops);
-        println!("Strassen (dynamic peeling) run time: {}ms", str_time);
+
+        println!("Binet number of operations: {}", bin_ops);
+        println!("Binet run time: {}ms", bin_time);
         println!("----------------------------");
 
-        println!("Laderman (dynamic padding) number of operations: {}", lad_ops);
-        println!("Laderman (dynamic padding) run time: {}ms", lad_time);
+        println!("Strassen number of operations: {}", str_ops);
+        println!("Strassen run time: {}ms", str_time);
+        println!("----------------------------");
+
+        println!("Laderman number of operations: {}", lad_ops);
+        println!("Laderman run time: {}ms", lad_time);
         println!("----------------------------\n");
     }
 
