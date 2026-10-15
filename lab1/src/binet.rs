@@ -35,17 +35,19 @@ fn calculate(a: DMatrixView<f64>, b: DMatrixView<f64>) -> (usize, DMatrix<f64>) 
     (ops, result)
 }
 
-pub fn mul(a: &DMatrix<f64>, b: &DMatrix<f64>) -> (usize, DMatrix<f64>) {
+pub fn binet(a: &DMatrix<f64>, b: &DMatrix<f64>) -> (usize, DMatrix<f64>) {
     calculate(a.as_view(), b.as_view())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::SquareMatrices;
+    use quickcheck_macros::quickcheck;
     
     #[test]
     fn mul1x1() {
-        assert_eq!((1, dmatrix![6.]), mul(&dmatrix![2.], &dmatrix![3.]));
+        assert_eq!((1, dmatrix![6.]), binet(&dmatrix![2.], &dmatrix![3.]));
     }
     
     #[test]
@@ -55,7 +57,7 @@ mod tests {
                 19., 22.;
                 43., 50.;
             ]),
-            mul(&dmatrix![
+            binet(&dmatrix![
                 1., 2.;
                 3., 4.;
             ], &dmatrix![
@@ -63,5 +65,59 @@ mod tests {
                 7., 8.;
             ])
         );
+    } 
+
+    const EPS: f64 = 1e-9;
+    
+    fn compare(a: &DMatrix<f64>, b: &DMatrix<f64>) -> bool {
+        (a - b).abs().max() <= EPS
+    }
+    
+    #[quickcheck]
+    fn associativity(SquareMatrices(a, b, c): SquareMatrices) -> bool {
+        compare(
+            &binet(&binet(&a, &b).1, &c).1,
+            &binet(&a, &binet(&b, &c).1).1
+        )
+    }
+    
+    #[quickcheck]
+    fn left_distributivity(SquareMatrices(a, b, c): SquareMatrices) -> bool {
+        compare(
+            &binet(&a, &(&b + &c)).1,
+            &(binet(&a, &b).1 + binet(&a, &c).1)
+        )
+    }
+    
+    #[quickcheck]
+    fn right_distributivity(SquareMatrices(a, b, c): SquareMatrices) -> bool {
+        compare(
+            &binet(&(&b + &c), &a).1,
+            &(binet(&b, &a).1 + binet(&c, &a).1)
+        )
+    }
+    
+    #[quickcheck]
+    fn left_identity(SquareMatrices(a, mut i, _): SquareMatrices) -> bool {
+        i.fill_with_identity();
+        compare(&binet(&i, &a).1, &a)
+    }
+    
+    #[quickcheck]
+    fn right_identity(SquareMatrices(a, mut i, _): SquareMatrices) -> bool {
+        i.fill_with_identity();
+        compare(&binet(&a, &i).1, &a)
+    }
+    
+    #[quickcheck]
+    fn left_zero(SquareMatrices(a, mut zero, _): SquareMatrices) -> bool {
+        zero.fill(0.);
+        compare(&binet(&zero, &a).1, &zero)
+    }
+    
+    #[quickcheck]
+    fn right_zero(SquareMatrices(a, mut zero, _): SquareMatrices) -> bool {
+        zero.fill(0.);
+        compare(&binet(&a, &zero).1, &zero)
     }
 }

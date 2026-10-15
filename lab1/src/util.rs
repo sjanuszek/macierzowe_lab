@@ -1,4 +1,5 @@
 use nalgebra::{DMatrix, DMatrixView};
+use quickcheck::Arbitrary;
 
 pub fn generate_random_matrix(n: usize) -> DMatrix<f64> {
     let mut random: Vec<f64> = vec![f64::default(); n * n];
@@ -80,4 +81,21 @@ pub fn split_view_3x3<'a>(view: &'a DMatrixView<f64>) -> (
     (a11, a12, a13,
      a21, a22, a23,
      a31, a32, a33)
+}
+
+#[derive(Clone, Debug)]
+pub struct SquareMatrices(pub DMatrix<f64>, pub DMatrix<f64>, pub DMatrix<f64>);
+
+impl Arbitrary for SquareMatrices {
+    fn arbitrary(g: &mut quickcheck::Gen) -> Self {
+        let size = g.size().isqrt();
+        SquareMatrices(generate_random_matrix(size), generate_random_matrix(size), generate_random_matrix(size))
+    }
+    
+    fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
+        let size = self.0.ncols() / 2;
+        Box::new([
+            SquareMatrices(generate_random_matrix(size), generate_random_matrix(size), generate_random_matrix(size))
+        ].into_iter())
+    }
 }

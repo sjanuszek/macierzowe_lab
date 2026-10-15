@@ -95,3 +95,92 @@ fn calculate(a: DMatrixView<f64>, b: DMatrixView<f64>) -> (usize, DMatrix<f64>) 
 pub fn laderman(a: &DMatrix<f64>, b: &DMatrix<f64>) -> (usize, DMatrix<f64>) {
     calculate(a.as_view(), b.as_view())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::util::SquareMatrices;
+    use quickcheck_macros::quickcheck;
+    
+    #[test]
+    fn mul1x1() {
+        let (_, res) = laderman(&dmatrix![2.], &dmatrix![3.]);
+        assert_eq!(dmatrix![6.], res);
+    }
+    
+    #[test]
+    fn mul2x2() {
+        let a = dmatrix![
+            1., 2.;
+            3., 4.;
+        ];
+        let b = dmatrix![
+            5., 6.;
+            7., 8.;
+        ];
+        let (_, res) = laderman(&a, &b);
+
+        assert_eq!(
+            dmatrix![
+                19., 22.;
+                43., 50.;
+            ],
+            res
+        );
+    }
+    
+    const EPS: f64 = 1e-9;
+    
+    fn compare(a: &DMatrix<f64>, b: &DMatrix<f64>) -> bool {
+        (a - b).abs().max() <= EPS
+    }
+    
+    #[quickcheck]
+    fn associativity(SquareMatrices(a, b, c): SquareMatrices) -> bool {
+        compare(
+            &laderman(&laderman(&a, &b).1, &c).1,
+            &laderman(&a, &laderman(&b, &c).1).1
+        )
+    }
+    
+    #[quickcheck]
+    fn left_distributivity(SquareMatrices(a, b, c): SquareMatrices) -> bool {
+        compare(
+            &laderman(&a, &(&b + &c)).1,
+            &(laderman(&a, &b).1 + laderman(&a, &c).1)
+        )
+    }
+    
+    #[quickcheck]
+    fn right_distributivity(SquareMatrices(a, b, c): SquareMatrices) -> bool {
+        compare(
+            &laderman(&(&b + &c), &a).1,
+            &(laderman(&b, &a).1 + laderman(&c, &a).1)
+        )
+    }
+    
+    #[quickcheck]
+    fn left_identity(SquareMatrices(a, mut i, _): SquareMatrices) -> bool {
+        i.fill_with_identity();
+        compare(&laderman(&i, &a).1, &a)
+    }
+    
+    #[quickcheck]
+    fn right_identity(SquareMatrices(a, mut i, _): SquareMatrices) -> bool {
+        i.fill_with_identity();
+        compare(&laderman(&a, &i).1, &a)
+    }
+    
+    #[quickcheck]
+    fn left_zero(SquareMatrices(a, mut zero, _): SquareMatrices) -> bool {
+        zero.fill(0.);
+        compare(&laderman(&zero, &a).1, &zero)
+    }
+    
+    #[quickcheck]
+    fn right_zero(SquareMatrices(a, mut zero, _): SquareMatrices) -> bool {
+        zero.fill(0.);
+        compare(&laderman(&a, &zero).1, &zero)
+    }
+}
+

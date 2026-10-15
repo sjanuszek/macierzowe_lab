@@ -53,6 +53,8 @@ pub fn strassen(a: &DMatrix<f64>, b: &DMatrix<f64>) -> (usize, DMatrix<f64>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::SquareMatrices;
+    use quickcheck_macros::quickcheck;
     
     #[test]
     fn mul1x1() {
@@ -79,5 +81,59 @@ mod tests {
             ],
             res
         );
+    }
+    
+    const EPS: f64 = 1e-9;
+    
+    fn compare(a: &DMatrix<f64>, b: &DMatrix<f64>) -> bool {
+        (a - b).abs().max() <= EPS
+    }
+    
+    #[quickcheck]
+    fn associativity(SquareMatrices(a, b, c): SquareMatrices) -> bool {
+        compare(
+            &strassen(&strassen(&a, &b).1, &c).1,
+            &strassen(&a, &strassen(&b, &c).1).1
+        )
+    }
+    
+    #[quickcheck]
+    fn left_distributivity(SquareMatrices(a, b, c): SquareMatrices) -> bool {
+        compare(
+            &strassen(&a, &(&b + &c)).1,
+            &(strassen(&a, &b).1 + strassen(&a, &c).1)
+        )
+    }
+    
+    #[quickcheck]
+    fn right_distributivity(SquareMatrices(a, b, c): SquareMatrices) -> bool {
+        compare(
+            &strassen(&(&b + &c), &a).1,
+            &(strassen(&b, &a).1 + strassen(&c, &a).1)
+        )
+    }
+    
+    #[quickcheck]
+    fn left_identity(SquareMatrices(a, mut i, _): SquareMatrices) -> bool {
+        i.fill_with_identity();
+        compare(&strassen(&i, &a).1, &a)
+    }
+    
+    #[quickcheck]
+    fn right_identity(SquareMatrices(a, mut i, _): SquareMatrices) -> bool {
+        i.fill_with_identity();
+        compare(&strassen(&a, &i).1, &a)
+    }
+    
+    #[quickcheck]
+    fn left_zero(SquareMatrices(a, mut zero, _): SquareMatrices) -> bool {
+        zero.fill(0.);
+        compare(&strassen(&zero, &a).1, &zero)
+    }
+    
+    #[quickcheck]
+    fn right_zero(SquareMatrices(a, mut zero, _): SquareMatrices) -> bool {
+        zero.fill(0.);
+        compare(&strassen(&a, &zero).1, &zero)
     }
 }
