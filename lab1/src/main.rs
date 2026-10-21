@@ -2,6 +2,7 @@ mod util;
 mod strassen;
 mod laderman;
 mod binet;
+mod testing;
 
 use nalgebra::dmatrix;
 
