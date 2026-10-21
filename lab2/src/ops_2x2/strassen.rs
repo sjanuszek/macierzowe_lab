@@ -2,7 +2,7 @@ use nalgebra::{DMatrix, DMatrixView, dmatrix};
 
 use crate::util::{dynamic_peeling, split_view};
 
-fn calculate(a: DMatrixView<f64>, b: DMatrixView<f64>) -> (usize, DMatrix<f64>) {
+pub(super) fn calculate(a: DMatrixView<f64>, b: DMatrixView<f64>) -> (usize, DMatrix<f64>) {
     let (n, _) = a.shape();
 
     if n == 1 {

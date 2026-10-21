@@ -1,7 +1,6 @@
 mod util;
-mod strassen;
-mod laderman;
-mod binet;
+mod ops_2x2;
+mod invert_laderman;
 
 fn main() {
     println!("Hello, world!");
