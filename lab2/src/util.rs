@@ -44,6 +44,41 @@ pub fn dynamic_peeling<'a>(a: &'a DMatrixView<f64>, b: &'a DMatrixView<f64>, cal
     return (ops_core + peeling_ops, res);
 }
 
+pub fn invert_peeling<'a>(
+    a: &'a DMatrixView<f64>, 
+    invert: fn(DMatrixView<f64>, fn(DMatrixView<f64>, DMatrixView<f64>) -> (usize, DMatrix<f64>)) -> (usize, DMatrix<f64>), 
+    calculate: fn(DMatrixView<f64>, DMatrixView<f64>) -> (usize, DMatrix<f64>)
+) -> (usize, DMatrix<f64>) {
+    let (n, _) = a.shape();
+    let m = n - 1;
+
+    let a11 = a.view((0, 0), (m, m));
+    let a12 = a.view((0, m), (m, 1));
+    let a21 = a.view((m, 0), (1, m));
+    let a22 = a[(m, m)];
+
+    let (ops_core, a11_inv) = invert(a11, calculate);
+
+    let mid1 = -&a11_inv * a12;
+    let mid2 = a21 * &a11_inv;
+    let s = a22 + (a21 * &mid1)[(0,0)];
+    let s_inv = 1. / s;
+
+    let b12 = &mid1 * s_inv;
+    let b11 = &a11_inv - &b12 * &mid2;
+    let b21 = -&s_inv * mid2;
+
+    let mut res = DMatrix::zeros(n, n);
+    res.view_mut((0, 0), (m, m)).copy_from(&b11);
+    res.view_mut((0, m), (m, 1)).copy_from(&b12);
+    res.view_mut((m, 0), (1, m)).copy_from(&b21);
+    res[(m, m)] = s_inv;
+
+    let peeling_ops = 6 * m * m + 4 * m + 2;
+
+    return (ops_core + peeling_ops, res);
+}
+
 pub fn split_view<'a>(view: &'a DMatrixView<f64>) -> (DMatrixView<'a, f64>, DMatrixView<'a, f64>, DMatrixView<'a, f64>, DMatrixView<'a, f64>) {
     let (n, _) = view.shape();
     let split_at = n / 2;
