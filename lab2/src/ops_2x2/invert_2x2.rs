@@ -2,7 +2,7 @@ use nalgebra::{DMatrix, DMatrixView, dmatrix};
 
 use crate::{ops_2x2::{binet, strassen}, util::{invert_peeling, split_view}};
 
-fn invert_2x2(a: DMatrixView<f64>, multiply: fn(DMatrixView<f64>, DMatrixView<f64>) -> (usize, DMatrix<f64>)) -> (usize, DMatrix<f64>) {
+pub(super) fn invert_2x2(a: DMatrixView<f64>, multiply: fn(DMatrixView<f64>, DMatrixView<f64>) -> (usize, DMatrix<f64>)) -> (usize, DMatrix<f64>) {
     let (n, _) = a.shape();
 
     if n == 1 {
@@ -71,4 +71,3 @@ pub fn invert_binet(a: &DMatrix<f64>) -> (usize, DMatrix<f64>) {
 pub fn invert_strassen(a: &DMatrix<f64>) -> (usize, DMatrix<f64>) {
     invert_2x2(a.as_view(), strassen::calculate)
 }
-
