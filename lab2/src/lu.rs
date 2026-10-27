@@ -1,6 +1,6 @@
 use nalgebra::{DMatrix, DMatrixView, dmatrix};
 
-use crate::{ops_2x2::{binet, invert_2x2::invert_2x2, strassen}, util::split_view};
+use crate::{{binet, invert::invert, strassen}, util::split_view};
 
 fn lu_peeling<'a>(
     a: &'a DMatrixView<f64>, 
@@ -91,9 +91,9 @@ fn lu(
 }
 
 pub fn lu_binet(a: &DMatrix<f64>) -> (usize, DMatrix<f64>, DMatrix<f64>) {
-    lu(a.as_view(), binet::calculate, invert_2x2)
+    lu(a.as_view(), binet::calculate, invert)
 }
 
 pub fn lu_strassen(a: &DMatrix<f64>) -> (usize, DMatrix<f64>, DMatrix<f64>) {
-    lu(a.as_view(), strassen::calculate, invert_2x2)
+    lu(a.as_view(), strassen::calculate, invert)
 }
