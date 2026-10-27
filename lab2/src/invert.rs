@@ -1,21 +1,24 @@
 use nalgebra::{DMatrix, DMatrixView, dmatrix};
 
-use crate::{ops_2x2::{binet, strassen}, util::{invert_peeling, split_view}};
+use crate::binet;
+use crate::laderman;
+use crate::strassen;
+use crate::util::{invert_peeling, split_view};
 
-pub(super) fn invert_2x2(a: DMatrixView<f64>, multiply: fn(DMatrixView<f64>, DMatrixView<f64>) -> (usize, DMatrix<f64>)) -> (usize, DMatrix<f64>) {
+pub(super) fn invert(a: DMatrixView<f64>, multiply: fn(DMatrixView<f64>, DMatrixView<f64>) -> (usize, DMatrix<f64>)) -> (usize, DMatrix<f64>) {
     let (n, _) = a.shape();
 
     if n == 1 {
         return (1, dmatrix![1. / a[(0, 0)]]);
     }
 
-    if n % 2 != 0 { return invert_peeling(&a, invert_2x2, multiply) }
+    if n % 2 != 0 { return invert_peeling(&a, invert, multiply) }
 
     let split_at = n / 2;
     let (a11, a12, 
          a21, a22) = split_view(&a);
 
-    let (ops1, a11_inv) = invert_2x2(a11, multiply);
+    let (ops1, a11_inv) = invert(a11, multiply);
     let (ops2, s22) = {
         let (ops1, mid1) = multiply(a21, a11_inv.as_view());
         let (ops2, mid2) = multiply(mid1.as_view(), a12);
@@ -24,7 +27,7 @@ pub(super) fn invert_2x2(a: DMatrixView<f64>, multiply: fn(DMatrixView<f64>, DMa
         (ops1 + ops2 + ops3, s22)
     };
 
-    let (ops3, s22_inv) = invert_2x2(s22.as_view(), multiply);
+    let (ops3, s22_inv) = invert(s22.as_view(), multiply);
     let (ops4, b12) = {
         // from what I understand negation is basically free as it can be folded into multiplication
         let a11_inv_neg = -&a11_inv;
@@ -65,9 +68,13 @@ pub(super) fn invert_2x2(a: DMatrixView<f64>, multiply: fn(DMatrixView<f64>, DMa
 }
 
 pub fn invert_binet(a: &DMatrix<f64>) -> (usize, DMatrix<f64>) {
-    invert_2x2(a.as_view(), binet::calculate)
+    invert(a.as_view(), binet::calculate)
 }
 
 pub fn invert_strassen(a: &DMatrix<f64>) -> (usize, DMatrix<f64>) {
-    invert_2x2(a.as_view(), strassen::calculate)
+    invert(a.as_view(), strassen::calculate)
+}
+
+pub fn invert_laderman(a: &DMatrix<f64>) -> (usize, DMatrix<f64>) {
+    invert(a.as_view(), laderman::calculate)
 }
