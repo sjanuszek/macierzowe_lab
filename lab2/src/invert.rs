@@ -78,3 +78,34 @@ pub fn invert_strassen(a: &DMatrix<f64>) -> (usize, DMatrix<f64>) {
 pub fn invert_laderman(a: &DMatrix<f64>) -> (usize, DMatrix<f64>) {
     invert(a.as_view(), laderman::calculate)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use quickcheck_macros::quickcheck;
+    use crate::util::SquareMatrices;
+    
+    const EPS: f64 = 1e-4;
+    
+    fn compare(a: &DMatrix<f64>, b: &DMatrix<f64>) -> bool {
+        (a - b).abs().max() <= EPS
+    }
+
+    #[quickcheck]
+    fn invert_binet_definition(SquareMatrices(a, _, _): SquareMatrices) -> bool {
+        compare(&binet::binet(&invert_binet(&a).1, &a).1, &DMatrix::identity(a.nrows(), a.ncols()))
+            && compare(&binet::binet(&a, &invert_binet(&a).1).1, &DMatrix::identity(a.nrows(), a.ncols()))
+    }
+
+    #[quickcheck]
+    fn invert_strassen_definition(SquareMatrices(a, _, _): SquareMatrices) -> bool {
+        compare(&binet::binet(&invert_strassen(&a).1, &a).1, &DMatrix::identity(a.nrows(), a.ncols()))
+            && compare(&binet::binet(&a, &invert_strassen(&a).1).1, &DMatrix::identity(a.nrows(), a.ncols()))
+    }
+
+    #[quickcheck]
+    fn invert_laderman_definition(SquareMatrices(a, _, _): SquareMatrices) -> bool {
+        compare(&binet::binet(&invert_laderman(&a).1, &a).1, &DMatrix::identity(a.nrows(), a.ncols()))
+            && compare(&binet::binet(&a, &invert_laderman(&a).1).1, &DMatrix::identity(a.nrows(), a.ncols()))
+    }
+}
