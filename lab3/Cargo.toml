@@ -6,7 +6,6 @@ edition = "2024"
 [dependencies]
 csv = "1.4.0"
 faer = {version = "0.24.0", features = ["rayon"]}
-nalgebra = "0.35.0"
 rand = "0.10.3"
 
 [profile.release]
