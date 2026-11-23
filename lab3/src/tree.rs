@@ -1,7 +1,7 @@
 use faer::{Mat, MatRef};
 use std::ops::Range;
 
-use crate::svd::{TruncatedSVD, svd};
+use crate::{svd::{TruncatedSVD, svd}, util::diag};
 
 const SONS_COUNT: usize = 4;
 
@@ -64,8 +64,7 @@ impl Node {
             } else {
                 NodeKind::LowRank {
                     u: svd.u.subcols(0, r).to_owned(),
-                    s: svd.s[..r].to_owned(),
-                    vt: svd.vt.subrows(0, r).to_owned(),
+                    vt: diag(&svd.s[..r]) * svd.vt.subrows(0, r),
                 }
             },
         }
@@ -78,7 +77,6 @@ pub enum NodeKind {
     Zero,
     LowRank {
         u: Mat<f64>,
-        s: Vec<f64>,
         vt: Mat<f64>,
     },
     Branch([Box<Node>; SONS_COUNT]),
@@ -93,7 +91,7 @@ mod tests {
     fn test_node_r1(node: &Node) -> bool {
         match &node.kind {
             NodeKind::Zero => true,
-            NodeKind::LowRank { u, s, vt } => u.ncols() == 1 && s.len() == 1 && vt.nrows() == 1,
+            NodeKind::LowRank { u, vt } => u.ncols() == 1 && vt.nrows() == 1,
             NodeKind::Branch(sons) => sons.iter().all(|son| test_node_r1(son)),
         }
     }
