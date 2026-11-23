@@ -9,6 +9,7 @@ faer = {version = "0.24.0", features = ["rayon"]}
 quickcheck = "1.1.0"
 quickcheck_macros = "1.2.0"
 rand = "0.10.3"
+bmp = "*"
 
 [profile.release]
 opt-level = 3
