@@ -54,3 +54,30 @@ pub fn svd(matrix: MatRef<f64>, k: usize) -> TruncatedSVD {
 
     TruncatedSVD {u, s, vt}
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{testing::*, util::diag};
+    use quickcheck_macros::quickcheck;
+    
+    #[quickcheck]
+    fn square_full_svd(SquareMatrix(a): SquareMatrix) -> bool {
+        let n = a.nrows();
+        let TruncatedSVD { u, s, vt } = svd(a.as_ref(), n);
+        u.shape() == (n, n) && s.len() == n && vt.shape() == (n, n)
+            && is_close((&u * diag(&s) * &vt).as_ref(), a.as_ref())
+            && is_close((&u * u.transpose()).as_ref(), Mat::identity(n, n).as_ref())
+            && is_close((&vt * vt.transpose()).as_ref(), Mat::identity(n, n).as_ref())
+            && s.iter().all(|&sigma| sigma >= 0.)
+    }
+    
+    #[quickcheck]
+    fn square_truncated_svd(SquareMatrix(a): SquareMatrix) -> bool {
+        let n = a.nrows();
+        let k = n / 2;
+        let TruncatedSVD { u, s, vt } = svd(a.as_ref(), k);
+        u.shape() == (n, k) && s.len() == k && vt.shape() == (k, n)
+            && s.iter().all(|&sigma| sigma >= 0.)
+    }
+}
