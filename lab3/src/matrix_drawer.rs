@@ -1,7 +1,7 @@
 use bmp::Image;
 use faer::{Mat, MatRef};
 
-use crate::tree::Node;
+use crate::tree::{Node, NodeKind};
 
 pub fn draw_everything(filename: &str) {
     let bitmap = bmp::open(filename).expect("Brak zdjęcia");
@@ -22,11 +22,36 @@ pub fn draw_everything(filename: &str) {
 }
 
 fn draw_channel(a: MatRef<f64>, filename: &str) {
-    let tree = Node::create_tree(a, 0..a.nrows(), 0..a.ncols(), 4, 1e-3);
+    let tree = Node::create_tree(a, 0..a.nrows(), 0..a.ncols(), 1, 1e-1);
     let mut bitmap = Image::new(a.nrows() as u32, a.ncols() as u32);
     for (x, y) in bitmap.coordinates() {
         bitmap.set_pixel(x, y, bmp::Pixel { r: 255, g: 255, b: 255 });
     }
+    
+    draw_tree(&tree, &mut bitmap);
 
     bitmap.save(filename);
+}
+
+fn draw_tree(node: &Node, bitmap: &mut Image) {
+    match &node.kind {
+        NodeKind::Zero => (),
+        NodeKind::LowRank { u, vt } => {
+            for row in node.rows.clone() {
+                for col in node.cols.start..(node.cols.start + u.ncols()) {
+                    bitmap.set_pixel(row as u32, col as u32, bmp::Pixel { r: 0, g: 0, b: 0 });
+                }
+            }
+            for row in node.rows.start..(node.rows.start + vt.nrows()) {
+                for col in node.cols.clone() {
+                    bitmap.set_pixel(row as u32, col as u32, bmp::Pixel { r: 0, g: 0, b: 0 });
+                }
+            }
+        }
+        NodeKind::Branch(sons) => {
+            for son in sons {
+                draw_tree(&son, bitmap);
+            }
+        }
+    }
 }

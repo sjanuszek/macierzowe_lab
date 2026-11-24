@@ -12,9 +12,9 @@ pub fn split(range: Range<usize>) -> (Range<usize>, Range<usize>) {
 
 #[derive(Clone, Default)]
 pub struct Node {
-    rows: Range<usize>,
-    cols: Range<usize>,
-    kind: NodeKind,
+    pub rows: Range<usize>,
+    pub cols: Range<usize>,
+    pub kind: NodeKind,
 }
 
 impl Node {
