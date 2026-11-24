@@ -16,13 +16,15 @@ pub fn draw_everything(filename: &str) {
         b_mat[(x as usize, y as usize)] = b as f64;
     }
     
-    draw_channel(r_mat.as_ref(), "r.bmp");
-    draw_channel(g_mat.as_ref(), "g.bmp");
-    draw_channel(b_mat.as_ref(), "b.bmp");
+    let mut bitmap = Image::new(r_mat.nrows() as u32, r_mat.ncols() as u32);
+    draw_channel(r_mat.as_ref(), "r.bmp", &mut bitmap, Channel::R);
+    draw_channel(g_mat.as_ref(), "g.bmp", &mut bitmap, Channel::G);
+    draw_channel(b_mat.as_ref(), "b.bmp", &mut bitmap, Channel::B);
+    bitmap.save("compressed.bmp");
 }
 
-fn draw_channel(a: MatRef<f64>, filename: &str) {
-    let tree = Node::create_tree(a, 0..a.nrows(), 0..a.ncols(), 1, 1e-1);
+fn draw_channel(a: MatRef<f64>, filename: &str, shared_bitmap: &mut Image, channel: Channel) {
+    let tree = Node::create_tree(a, 0..a.nrows(), 0..a.ncols(), 1, 20.);
     let mut bitmap = Image::new(a.nrows() as u32, a.ncols() as u32);
     for (x, y) in bitmap.coordinates() {
         bitmap.set_pixel(x, y, bmp::Pixel { r: 255, g: 255, b: 255 });
@@ -31,6 +33,8 @@ fn draw_channel(a: MatRef<f64>, filename: &str) {
     draw_tree(&tree, &mut bitmap);
 
     bitmap.save(filename);
+
+    draw_compressed(&tree, shared_bitmap, channel);
 }
 
 fn draw_tree(node: &Node, bitmap: &mut Image) {
@@ -55,3 +59,31 @@ fn draw_tree(node: &Node, bitmap: &mut Image) {
         }
     }
 }
+
+fn draw_compressed(node: &Node, bitmap: &mut Image, channel: Channel) {
+    match &node.kind {
+        NodeKind::Zero => (),
+        NodeKind::LowRank { u, vt } => {
+            let a = u * vt;
+            for row in 0..a.nrows() {
+                for col in 0..a.ncols() {
+                    let x = (node.rows.start + row) as u32;
+                    let y = (node.cols.start + col) as u32;
+                    let bmp::Pixel { r, g, b } = bitmap.get_pixel(x, y);
+                    match channel {
+                        Channel::R => bitmap.set_pixel(x, y, bmp::Pixel { r: r + a[(row as usize, col as usize)] as u8, g, b }),
+                        Channel::G => bitmap.set_pixel(x, y, bmp::Pixel { r, g: g + a[(row as usize, col as usize)] as u8, b }),
+                        Channel::B => bitmap.set_pixel(x, y, bmp::Pixel { r, g, b: b + a[(row as usize, col as usize)] as u8 }),
+                    }
+                }
+            }
+        }
+        NodeKind::Branch(sons) => {
+            for son in sons {
+                draw_tree(&son, bitmap);
+            }
+        }
+    }
+}
+
+enum Channel { R, G, B }
