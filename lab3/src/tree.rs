@@ -56,15 +56,25 @@ impl Node {
         svd: &TruncatedSVD,
         r: usize,
     ) -> Self {
+        let slice = a.get(rows.clone(), cols.clone());
+        let is_zero = slice
+            .row_iter()
+            .all(|row| row.iter().all(|&x| x == 0.0));
+
+        let rank = r
+            .min(svd.s.len())
+            .min(svd.u.ncols())
+            .min(svd.vt.nrows());
+
         Node {
             rows,
             cols,
-            kind: if a.row_iter().all(|row| row.iter().all(|&x| x == 0.)) {
+            kind: if is_zero {
                 NodeKind::Zero
             } else {
                 NodeKind::LowRank {
-                    u: svd.u.subcols(0, r).to_owned(),
-                    vt: diag(&svd.s[..r]) * svd.vt.subrows(0, r),
+                    u: svd.u.subcols(0, rank).to_owned(),
+                    vt: diag(&svd.s[..rank]) * svd.vt.subrows(0, rank),
                 }
             },
         }
