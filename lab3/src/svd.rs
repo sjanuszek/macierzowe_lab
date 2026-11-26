@@ -10,10 +10,20 @@ pub struct TruncatedSVD {
     pub vt: Mat<f64>
 }
 
+pub fn full_singular_values(matrix: MatRef<f64>) -> Vec<f64> {
+    let svd = matrix.thin_svd().expect("Błąd obliczania SVD");
+    let s = svd.S();
+    let len = matrix.nrows().min(matrix.ncols());
+    (0..len).map(|i| s[i]).collect()
+}
+
 // implementation of a probabilistic svd decomposition algorithm as according to:
 // Finding structure with randomness: Probabilistic algorithms for constructing approximate matrix decompositions by Halko, Martinsson, Tropp 
 pub fn svd(matrix: MatRef<f64>, k: usize) -> TruncatedSVD {
-    let l = k + OVERSAMPLING;
+    let max_rank = matrix.nrows().min(matrix.ncols());
+    let k = k.min(max_rank).max(1);
+
+    let l = (k + OVERSAMPLING).min(max_rank);
     let mut rng = rand::rng();
     // draw an n × l Gaussian random matrix omega
     let omega: Mat<f64> = Mat::from_fn(matrix.ncols(), l, |_, _| rng.sample(StandardNormal));
