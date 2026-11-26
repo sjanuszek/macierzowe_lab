@@ -79,6 +79,16 @@ impl Node {
             },
         }
     }
+
+    pub fn compressed_size_bytes(&self) -> usize {
+        match &self.kind {
+            NodeKind::Zero => 0,
+            NodeKind::LowRank { u, vt } => {
+                (u.nrows() * u.ncols() + vt.nrows() * vt.ncols()) * std::mem::size_of::<f64>()
+            }
+            NodeKind::Branch(sons) => sons.iter().map(|s| s.compressed_size_bytes()).sum(),
+        }
+    }
 }
 
 #[derive(Clone, Default)]
